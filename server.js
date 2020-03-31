@@ -14,7 +14,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
-app.post('/signup', (req, res, next) => {
+app.post('/register', (req, res, next) => {
     const newUser = new User({
         username: req.body.username,
         email: req.body.email,
@@ -28,7 +28,7 @@ app.post('/signup', (req, res, next) => {
             })
         }
         return res.status(200).json({
-            title: 'Signup success'
+            title: 'Registration success'
         })
     })
 })
