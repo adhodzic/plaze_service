@@ -5,6 +5,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
 const cors = require('cors');
 const User = require('./models/User');
+const Post = require('./models/Post');
+const storage = require('./storage');
 
 mongoose.set('useCreateIndex', true);
 mongoose.connect('mongodb+srv://aho:adnan123@db-syms8.mongodb.net/test?retryWrites=true&w=majority', {useNewUrlParser: true, useUnifiedTopology:true});
@@ -13,6 +15,26 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
+
+app.post('/newpost', (req,res,next) => {
+    const newPost = new Post()
+    newPost.title = req.body.title,
+    newPost.user.push(storage.user_id),
+    newPost.url = req.body.url,
+    newPost.date = Date.now()
+
+    newPost.save(err => {
+        if(err){
+            return res.status(400).json({
+                title: 'Error',
+                error: 'Title is already in use. Try with different one'
+            })
+        }
+        return res.status(200).json({
+            title: 'Post has been published'
+        })
+    })
+})
 
 app.post('/register', (req, res, next) => {
     const newUser = new User({
@@ -52,6 +74,7 @@ app.post('/login', (req, res, next) => {
             })
         }
         let token = jwt.sign({ userId: user._id}, 'secretkey');
+        storage.user_id = user._id;
         return res.status(200).json({
             title: 'login success',
             token: token
