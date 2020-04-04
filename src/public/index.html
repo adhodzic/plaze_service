@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My first Vue app</title>
+  <script src="https://unpkg.com/vue"></script>
+</head>
+<body>
+  <div id="app">
+      <p>Datum: {{ datum }}</p>
+      <p>Prognoza: {{ prognoza }}</p>
+  </div>
+
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        datum: [],
+        prognoza: []
+      },
+      mounted() {
+        let self = this
+        fetch('/datum')
+        .then(res => res.json())
+        .then(datum => self.datum = datum);
+
+        fetch('/prognoza')
+        .then(res => res.json())
+        .then(prognoza => self.prognoza = prognoza);
+      }
+    })
+  </script>
+</body>
+</html>
