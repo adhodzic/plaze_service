@@ -9,14 +9,8 @@ npm install
 npm run serve
 ```
 
-PROMJENE :
-
-1. Autentikacija nesto ne radi,kaze da lozinka nije ista na Signupu.
-2. Više nije Landing.vue sada je Home.vue
-3. Više nije Signup.vue sada je Register.vue
-4. Napravio sam neke sitne izmjene ono u index.html dodani su neki CDN-ns da mozže renderat bootstrap i ostalo.
-5. Suklando sa promijenjenim imenima viewsa promijenjene su i nazivi ruta u router fileu.
-6. Rute su sljedeće : / za home  /login za login i  /register za registraciju.
-7. Kod koji nije radio za autentikaciju sam izbrisao ovo je čisto frontend.
-8. Kod za autentikaciju je na branchu prije.
-9. Folder za ulaz u app više nije auth nego project_wa.
+WHAT'S NEW:
+- NA BACKENDU NIŠTA SE KONKRETNO NIJE PROMIJENILO
+- NA FRONTENDU SAM NAPRAVIO DOSTA
+- GLAVNO ŠTA SAM NAPRAVIO NA FRONTENDU SU POSTOV ALI TO POGLEDAJ U TOM REPOZITORIJU
+- PREDLAŽEM DA SVAKI PUT KAD SE NAPRAVI NEKA PROMJENA BILO NA BACKENDU ILI NA FRONTENDU DA SE UPLOADAJU I BACKEND I FRONTEND KAKO BI BILI SIGURNI DA ĆE SVE RADITI. TAKO SAM JA OVAJ FOLDER NAZVAO '04.04.2020.' TU NA BACKENDU I ISTO TAKO SAM GA NAZVAO NA FRONTENDU TAKO DA KAD ŽELIŠ PROVJERIT KAKO RADI DA SKINEŠ TOČNE FOLDERE KOJI SKUPA RADE BEZ GREŠAKA.
