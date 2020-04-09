@@ -1,12 +1,18 @@
-# service
+# auth
 
 ## Project setup
 ```
 npm install
 ```
-### RUN BACK-END
+
+### RUN FRONT-END (in folder auth run these commands)
 ```
 npm run serve
+```
+
+### RUN BACK-END (in folder auth run these commands)
+```
+npm run server
 ```
 
 PROMJENE :

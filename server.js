@@ -6,6 +6,29 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors');
 const User = require('./models/User');
 const Post = require('./models/Post');
+const multer = require('multer');
+const imageStorage = multer.diskStorage({
+    destination: function(req, file, cb){
+        cb(null, './uploads');
+    },
+    filename: function(req, file, cb){
+        cb(null, Date .now() +'-'+ file.originalname);
+    }
+})
+const fileFilter = (req, file, cb) => {
+    if(file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'image/png'){
+        cb(null, true);
+    }else{
+        cb(null, false);
+    }
+}
+const upload = multer({
+    storage: imageStorage,
+    limits: {
+        fileSize: 1024 * 1024 * 50
+    },
+    fileFilter: fileFilter
+})
 const storage = require('./storage');
 
 mongoose.set('useCreateIndex', true);
@@ -13,32 +36,42 @@ mongoose.connect('mongodb+srv://aho:adnan123@db-syms8.mongodb.net/test?retryWrit
 
 const app = express();
 app.use(cors());
+app.use('/uploads/',express.static('uploads'))
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
-app.post('/newpost', (req,res,next) => {
-    const newPost = new Post()
-    newPost.title = req.body.title,
-    newPost.user.push(storage.user_id),
-    newPost.url = req.body.url,
-    newPost.date = Date.now()
+app.post('/newpost', upload.single('postImage'), (req,res,next) => {
+    try{
+        const newPost = new Post()
+        newPost.title = req.body.title,
+        newPost.user = storage.user_id,
+        newPost.url = req.file.path,
+        newPost.date = Date.now()
 
-    newPost.save(err => {
-        if(err){
-            return res.status(400).json({
-                title: 'Error',
-                error: 'Title is already in use. Try with different one'
+        newPost.save(err => {
+            if(err){
+                console.log(err);
+                return res.status(400).json({
+                    title: 'Error',
+                    error: 'Title is already in use. Try with different one'
+                })
+            }
+            return res.status(200).json({
+                title: 'Post has been published'
             })
-        }
-        return res.status(200).json({
-            title: 'Post has been published'
         })
-    })
+    }catch(e){
+        console.log(e);
+        res.status(500).json({
+            title: "Posting error",
+            error: "Post could not be created"
+        })
+    }
 })
 
 app.post('/register', (req, res, next) => {
     const newUser = new User({
-        username: req.body.username,
+        name: req.body.name,
         email: req.body.email,
         password: bcrypt.hashSync(req.body.password, 10)
     })
@@ -101,6 +134,22 @@ app.get('/user', (req, res, next) => {
             })
         })
     })
+})
+app.get('/posts', async (req, res, next) => {
+    let data = [];
+    let posts = await Post.find({});
+    for(post of posts) {
+        console.log(post)
+        let user = await User.findOne({_id: post.user});
+        let obj = {
+            "title":  post.title,
+            "user": user.name,
+            "url": "http://localhost:5000/"+post.url,
+        }
+        data.push(obj);
+    }
+    console.log(data);
+    res.send(data);
 })
 
 app.get('/', (req, res, next) => {

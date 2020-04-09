@@ -7,7 +7,8 @@ const postSchema = new Schema({
         unique: true,
         type: String
     },
-    user: {type: Schema.Types.ObjectId, ref: 'User'},
+    user: String,
+    //user: {type: Schema.Types.ObjectId, ref: 'User'},
     url: String,
     date: Date
 })
