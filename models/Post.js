@@ -1,14 +1,20 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-const User = require('../models/User')
 
 const postSchema = new Schema({
     title: {
         unique: true,
         type: String
     },
-    user: String,
-    //user: {type: Schema.Types.ObjectId, ref: 'User'},
+    postedBy: {
+        type: Schema.Types.ObjectId, 
+        ref: 'User'
+    },
+    description: String,
+    beach_type: String,
+    lf_tower: String,
+    pets_allowed_answer: String,
+    free_beach: String,
     url: String,
     date: Date
 })

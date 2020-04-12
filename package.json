@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "serve": "nodemon server"
+    "serve": "nodemon ./src/server"
   },
   "dependencies": {
     "axios": "^0.19.2",
