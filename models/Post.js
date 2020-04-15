@@ -16,7 +16,7 @@ const postSchema = new Schema({
     pets_allowed_answer: String,
     free_beach: String,
     url: String,
-    date: Date
+    posted_at: Date
 })
 
 const Post = mongoose.model('Post', postSchema)
