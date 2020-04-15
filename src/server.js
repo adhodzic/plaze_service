@@ -68,6 +68,24 @@ app.post('/newpost', upload.single('blobData'), async(req,res,next) => {
     })
 })
 
+app.post('/newcomment', async(req, res, next) => {
+    let post = req.body.id
+    let text = req.body.text;
+    let token = req.body.token;
+    let user = await jwt.verify(token, 'secretkey')
+    const NewComment = new db.Comment({
+        text: text,
+        commentedBy: mongoose.Types.ObjectId(user._id),
+        postId: mongoose.Types.ObjectId(post),
+        replays: null,
+        parentId: null,
+        posted_at: Date.now()
+    })
+    let posted = await NewComment.save()
+
+    res.status(200).json(NewComment);
+})
+
 app.post('/register', async(req, res, next) => {
     const NewUser = new db.User({
         name: req.body.name,
@@ -126,7 +144,6 @@ app.post('/login', async (req, res, next) => {
 
 app.get('/user', async(req, res, next) => {    
     let UserJwt = await jwt.verify(req.headers.token, 'secretkey')
-
     if(!UserJwt){
         return res.status(400).json({
             title: 'Autorization failed',
@@ -156,19 +173,32 @@ app.get('/posts', async (req, res, next) => {
         title: "Error in grabbing data from db",
         error: e
     }))
-    console.log(data)
     res.send(data);
 })
 
 app.get('/details', async (req, res, next) => {
-    const title = req.headers.title;
-    const data = await db.Post.findOne({title: title}).populate('postedBy', 'name email -_id')
+    const id = req.headers.id;
+    const data = await db.Post.findOne({_id: id}).populate('postedBy', 'name email -_id')
     .catch(e => console.log({
         title: "Error in grabbing data from db",
         error: e
     }))
-    console.log(data)
     res.send(data);
+})
+
+app.get('/comments', async(req, res, next) => {
+    const id = req.headers.id;
+    const data = await db.Post.findOne({_id: id}).populate('postedBy', '_id')
+    .catch(e => console.log({
+        title: "Error in grabbing data from db",
+        error: e
+    }))
+    const comments = await db.Comment.find({postId: id}).lean().populate({path: 'replays', model: "Comment", populate:{path: 'commentedBy', select: 'name', model: 'User'}}).populate('commentedBy', 'name -_id')
+    .catch(e => console.log({
+        title: "Error in grabbing data from db",
+        error: e
+    }))
+    res.status(200).json(comments)
 })
 
 app.get('/', (req, res, next) => {
