@@ -73,9 +73,10 @@ app.post('/newcomment', async(req, res, next) => {
     let text = req.body.text;
     let token = req.body.token;
     let user = await jwt.verify(token, 'secretkey')
+    console.log(user)
     const NewComment = new db.Comment({
         text: text,
-        commentedBy: mongoose.Types.ObjectId(user._id),
+        commentedBy: mongoose.Types.ObjectId(user.userId),
         postId: mongoose.Types.ObjectId(post),
         replays: null,
         parentId: null,
