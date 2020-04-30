@@ -47,7 +47,8 @@ app.use('/uploads/',express.static('uploads'))
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
-//Ruta koja kreira novi post tako sto spremi blobData kao sliku te kreira novi objekt u bazi sa svim podatcima ukljucujuci url spremljene slike
+/*Ruta koja kreira novi post tako sto spremi blobData kao sliku te kreira novi objekt u bazi
+sa svim podatcima ukljucujuci url spremljene slike */
 app.post('/newpost', upload.single('blobData'), async(req,res,next) => {
     let newpost = req.body;
     let user = await jwt.verify(newpost.token, 'secretkey');
@@ -72,8 +73,10 @@ app.post('/newpost', upload.single('blobData'), async(req,res,next) => {
     })
 })
 
-//Ruta za spremanje dodavanje novog komentara/odgovora. Radi na principu da ako se u objektu koji je ruta primila nalazi podatak comment
-//to znaci da se dodaje novi odgovor na neki komentar. Usuprotnom znamo da ne odgovaramo na ne komentar nego upravo dodajemo komentar na post
+/*Ruta za spremanje dodavanje novog komentara/odgovora.
+Radi na principu da ako se u objektu koji je ruta primila nalazi podatak comment
+to znaci da se dodaje novi odgovor na neki komentar.
+Usuprotnom znamo da ne odgovaramo na ne komentar nego upravo dodajemo komentar na post */
 app.post('/newcomment', async(req, res, next) => {
     let post = req.body.id
     let comment = req.body.comment
@@ -113,7 +116,8 @@ app.post('/newcomment', async(req, res, next) => {
     }
 })
 
-//Ruta za registraciju novog korisnika. Trenutno jos nije implementirano da korisnik moze imati ulogu ali to nam je sljedeci zadatak
+/*Ruta za registraciju novog korisnika.
+Trenutno jos nije implementirano da korisnik moze imati ulogu ali to nam je sljedeci zadatak */
 app.post('/register', async(req, res, next) => {
     const NewUser = new db.User({
         name: req.body.name,
@@ -134,8 +138,8 @@ app.post('/register', async(req, res, next) => {
     }
 })
 
-//Ruta za prijavu korinsika. Koristimo JWT kao motodu autentifikacije korisnika.
-//Taj JWT kod se sprema na backendu i u njemu se nalaze podatci poput email-a prijavljene osobe te njezino ime.
+/*Ruta za prijavu korinsika. Koristimo JWT kao motodu autentifikacije korisnika.
+Taj JWT kod se sprema na backendu i u njemu se nalaze podatci poput email-a prijavljene osobe te njezino ime.*/
 app.post('/login', async (req, res, next) => {
     let user = await db.User.findOne({email: req.body.email})
     .catch(e => {
@@ -172,7 +176,8 @@ app.post('/login', async (req, res, next) => {
     })
 })
 
-//Ruta kojom dohvacamo korisnika iz baze podataka na nacin da dekriptiramo JWT koji smo poslali u request te onda iz njega imamo informaciju o kojem se korisniku radi.
+/*Ruta kojom dohvacamo korisnika iz baze podataka.
+Na nacin da dekriptiramo JWT koji smo poslali u request te onda iz njega imamo informaciju o kojem se korisniku radi.*/
 app.get('/user', async(req, res, next) => {    
     let UserJwt = await jwt.verify(req.headers.token, 'secretkey')
     if(!UserJwt){
@@ -198,7 +203,8 @@ app.get('/user', async(req, res, next) => {
     })
 })
 
-//Ruta za dohvacanje svih postova. Trenutno jos nije implementirano pretrazivanje. Te filtriranje postova koji nisu jos odobreni od strane administratora
+/*Ruta za dohvacanje svih postova. Trenutno jos nije implementirano pretrazivanje.
+Te filtriranje postova koji nisu jos odobreni od strane administratora.*/
 app.get('/posts', async (req, res, next) => {
     const data = await db.Post.find({}).populate('postedBy', 'name email -_id')
     .catch(e => console.log({
@@ -219,7 +225,8 @@ app.get('/details', async (req, res, next) => {
     res.send(data);
 })
 
-//Ruta za dohvacanje kometara i odgovora. Kasnije se na Clientu odvajaju komentrari od odogovra tako sto znamo da komentar nikada nece imat parentId.
+/*Ruta za dohvacanje kometara i odgovora.
+Kasnije se na Clientu odvajaju komentrari od odogovra tako sto znamo da komentar nikada nece imat parentId.*/
 app.get('/comments', async(req, res, next) => {
     const id = req.headers.id;
     const data = await db.Post.findOne({_id: id}).populate('postedBy', '_id')
