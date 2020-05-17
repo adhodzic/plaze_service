@@ -1,3 +1,4 @@
+//Spremanje modula koje cemo koristiti u aplikaciji
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -6,7 +7,10 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors');
 const db = require('./index');
 const multer = require('multer');
+const fs = require('fs')
 
+//**Postavke za spremanje slika pomoću multer middelwarea**
+//######################################################################################################
 const imageStorage = multer.diskStorage({
     destination: function(req, file, cb){
         cb(null, './uploads');
@@ -31,30 +35,38 @@ const upload = multer({
     },
     fileFilter: fileFilter
 })
+//#########################################################################################################
 
-const storage = require('./storage');
-
+//Postavke mongoose modula te spajanje na bazu
 mongoose.set('useCreateIndex', true);
 mongoose.connect('mongodb+srv://aho:adnan123@db-syms8.mongodb.net/test?retryWrites=true&w=majority', {useNewUrlParser: true, useUnifiedTopology:true});
 
+//Inicijalizacija express-a i dodatne postavke za njega
 const app = express();
 app.use(cors());
 app.use('/uploads/',express.static('uploads'))
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
-
-app.post('/newpost', upload.single('blobData'), async(req,res,next) => {
+function check(req,res,next){
+    let token = req.headers.token || req.body.token
+    jwt.verify(token, 'secretkey', (err,decoded) =>{
+        if(err){
+            return res.status(500).json({
+                error:"Token expired"
+            })
+        }else{
+            req.UserJwt = decoded;
+            next();
+        }
+    })
+}
+/*Ruta koja kreira novi post tako sto spremi blobData kao sliku te kreira novi objekt u bazi
+sa svim podatcima ukljucujuci url spremljene slike */
+app.post('/newpost', upload.single('blobData'),check, async(req,res,next) => {
     let newpost = req.body;
-    let user = await jwt.verify(newpost.token, 'secretkey');
-    if(!user) {
-        return res.status(400).json({
-            title: "User error",
-            error: "User does not exist or credentials are invalid"
-        })
-    }
-    newpost.url = 'http://localhost:5000/' + req.file.path;
-    newpost.postedBy = user.userId;
+    newpost.url = 'http://localhost:3000/' + req.file.path;
+    newpost.postedBy = req.UserJwt.userId;
     
     let CreatePost = await db.Post.create(newpost);
     if(!CreatePost){
@@ -68,6 +80,94 @@ app.post('/newpost', upload.single('blobData'), async(req,res,next) => {
     })
 })
 
+app.patch('/updatepost/:id', upload.single('blobData'),check, async(req, res, next) => {
+    let newpost = req.body;
+    delete newpost["token"];
+    let id = mongoose.Types.ObjectId(req.params.id)
+    if(typeof req.file != undefined && req.file != null){
+        newpost.url = 'http://localhost:3000/' + req.file.path;
+        let data = await db.Post.findOne({_id: id},{url: 1})
+        let url = data["url"].replace('http://localhost:3000/','')
+        console.log(url)
+        fs.unlink(url, function(err) {
+            if(err && err.code == 'ENOENT') {
+                // file doens't exist
+                console.info("File doesn't exist, won't remove it.");
+            } else if (err) {
+                // other errors, e.g. maybe we don't have enough permission
+                console.error("Error occurred while trying to remove file");
+            } else {
+                console.info(`removed`);
+            }
+        });
+    }
+    let result = await db.Post.updateOne({_id: id},{ $set: newpost})
+    .catch(e =>{
+        if(typeof req.file != undefined && req.file!= null){
+            fs.unlink(req.file.path)
+        }
+        res.status(500).json({
+            title:"error while updateing"
+        })
+    })
+    res.status(200).json({
+        title: "Post updated"
+    })
+})
+/*Ruta za spremanje dodavanje novog komentara/odgovora.
+Radi na principu da ako se u objektu koji je ruta primila nalazi podatak comment
+to znaci da se dodaje novi odgovor na neki komentar.
+Usuprotnom znamo da ne odgovaramo na ne komentar nego upravo dodajemo komentar na post */
+app.post('/newcomment', async(req, res, next) => {
+    let post = req.body.id
+    let comment = req.body.comment
+    let text = req.body.text;
+    let token = req.body.token;
+    let user = await jwt.verify(token, 'secretkey')
+    if(comment){
+        const NewReplay = new db.Comment({
+            text: text,
+            commentedBy: mongoose.Types.ObjectId(user.userId),
+            postId: mongoose.Types.ObjectId(post),
+            replays: [],
+            parentId: comment,
+            posted_at: Date.now()
+        })
+        let posted = await NewReplay.save()
+
+        let query = { _id: comment };
+        let update = await db.Comment.updateOne(query, { $push: { replays: posted._id} });
+        res.status(200).json(update);
+    }else{
+        const NewComment = new db.Comment({
+            text: text,
+            commentedBy: mongoose.Types.ObjectId(user.userId),
+            postId: mongoose.Types.ObjectId(post),
+            replays: [],
+            parentId: null,
+            posted_at: Date.now()
+        })
+        let posted = await NewComment.save()
+    
+        res.status(200).json(posted);
+    }
+})
+
+app.post('/delete_comment/:id', async(req, res)=>{
+    let id = mongoose.Types.ObjectId(req.params.id);
+    let comment = await db.Comment.findOne({_id: id})
+    if(comment.replays.length <= 0){
+        await db.Comment.deleteOne({_id: id})
+    }else{
+        await db.Comment.deleteMany({_id: {$in: comment.replays}})
+        await db.Comment.deleteOne({_id: id})
+    }
+
+    res.json("OK")
+})
+
+/*Ruta za registraciju novog korisnika.
+Trenutno jos nije implementirano da korisnik moze imati ulogu ali to nam je sljedeci zadatak */
 app.post('/register', async(req, res, next) => {
     const NewUser = new db.User({
         name: req.body.name,
@@ -88,6 +188,8 @@ app.post('/register', async(req, res, next) => {
     }
 })
 
+/*Ruta za prijavu korinsika. Koristimo JWT kao motodu autentifikacije korisnika.
+Taj JWT kod se sprema na backendu i u njemu se nalaze podatci poput email-a prijavljene osobe te njezino ime.*/
 app.post('/login', async (req, res, next) => {
     let user = await db.User.findOne({email: req.body.email})
     .catch(e => {
@@ -109,7 +211,7 @@ app.post('/login', async (req, res, next) => {
         })
     }
 
-    let token = jwt.sign({ userId: user._id}, 'secretkey')
+    let token = jwt.sign({ userId: user._id}, 'secretkey',{ expiresIn:  "3h"} )
     
     if(!token){
         return res.status(500).json({
@@ -124,9 +226,10 @@ app.post('/login', async (req, res, next) => {
     })
 })
 
-app.get('/user', async(req, res, next) => {    
-    let UserJwt = await jwt.verify(req.headers.token, 'secretkey')
-
+/*Ruta kojom dohvacamo korisnika iz baze podataka.
+Na nacin da dekriptiramo JWT koji smo poslali u request te onda iz njega imamo informaciju o kojem se korisniku radi.*/
+app.get('/user', check,  async(req, res, next) => {    
+    let UserJwt = req.UserJwt
     if(!UserJwt){
         return res.status(400).json({
             title: 'Autorization failed',
@@ -150,30 +253,79 @@ app.get('/user', async(req, res, next) => {
     })
 })
 
+/*Ruta za dohvacanje svih postova. Trenutno jos nije implementirano pretrazivanje.
+Te filtriranje postova koji nisu jos odobreni od strane administratora.*/
 app.get('/posts', async (req, res, next) => {
-    const data = await db.Post.find({}).populate('postedBy', 'name email -_id')
+
+    let query = req.query
+
+    let selection = {}
+    if(query.title){
+        selection.title = new RegExp(query.title)
+    }
+
+    /* if(query.postedBy){
+        selection.postedBy = new RegExp('^'+ query.postedBy,'i') // 'i' je da ne bude case sensitive
+    }
+
+    if(query._any){
+        let pretraga = query._any
+        let terms = pretraga.split(' ')
+
+        let atributi = ['title','postedBy']
+
+        selection={
+            $and:[]
+        }
+        terms.forEach(term => {
+            let or = {
+                $or:[]
+            }
+            atributi.forEach(atribut => {
+                or.$or.push({[atribut]:new RegExp(term)})
+            });
+            selection.$and.push(or);
+        });
+    } */
+
+
+
+
+    const data = await db.Post.find(selection).populate('postedBy', 'name email -_id')
     .catch(e => console.log({
         title: "Error in grabbing data from db",
         error: e
     }))
-    console.log(data)
     res.send(data);
 })
 
-app.get('/details', async (req, res, next) => {
-    const title = req.headers.title;
-    const data = await db.Post.findOne({title: title}).populate('postedBy', 'name email -_id')
+//Ruta za dohvcanje detalja određenog posta
+app.get('/details/:id', async (req, res, next) => {
+    const id = req.params.id;
+    const data = await db.Post.findOne({_id: id}).populate('postedBy', 'name email -_id')
     .catch(e => console.log({
         title: "Error in grabbing data from db",
         error: e
     }))
-    console.log(data)
     res.send(data);
 })
 
-app.get('/', (req, res, next) => {
-    res.send("Hello World")
+/*Ruta za dohvacanje kometara i odgovora.
+Kasnije se na Clientu odvajaju komentrari od odogovra tako sto znamo da komentar nikada nece imat parentId.*/
+app.get('/comments/:id', async(req, res, next) => {
+    const id = req.params.id;
+    const data = await db.Post.findOne({_id: id}).populate('postedBy', '_id')
+    .catch(e => console.log({
+        title: "Error in grabbing data from db",
+        error: e
+    }))
+    const comments = await db.Comment.find({postId: id, parentId: null}).lean().populate({path: 'replays', model: "Comment", populate:{path: 'commentedBy', select: 'name', model: 'User'}}).populate('commentedBy', 'name -_id')
+    .catch(e => console.log({
+        title: "Error in grabbing data from db",
+        error: e
+    }))
+    res.status(200).json(comments)
 })
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 app.listen(port, () => (console.log(`Listening on port ${port}`)))
