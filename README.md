@@ -16,4 +16,4 @@ npm run server
 ```
 
 PROMJENE :
-1.NAPRAVLJEN SEARCH
+1.Popravljen css za mobile verziju
