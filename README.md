@@ -14,7 +14,3 @@ npm run serve
 ```
 npm run server
 ```
-
-PROMJENE :
-
-1. Popravljen css za mobile verziju
