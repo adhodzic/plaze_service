@@ -333,7 +333,9 @@ app.post('/delete_account',async(req,res,next)=>{
     })
     
     let deleteUser = await db.User.deleteOne({_id: userJwt.userId})
+    let deletePost = await db.Post.deleteMany({postedBy:userJwt.userId})
     console.log("Account Deleted!");
+    console.log("Posts Deleted!");
     res.json("Account Deleted!")
 })
 
