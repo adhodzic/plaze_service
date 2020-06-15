@@ -16,4 +16,4 @@ npm run server
 ```
 
 PROMJENE :
-1.NAPRAVLJEN SEARCH
+Sve funkcionalnosti rade
