@@ -6,36 +6,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
 const cors = require('cors');
 const db = require('./index');
-const multer = require('multer');
 const fs = require('fs')
-
-//**Postavke za spremanje slika pomoću multer middelwarea**
-//######################################################################################################
-const imageStorage = multer.diskStorage({
-    destination: function(req, file, cb){
-        cb(null, './uploads');
-    },
-    filename: function(req, file, cb){
-        cb(null, Date .now() +'-'+ file.originalname + '.jpg');
-    }
-})
-
-const fileFilter = (req, file, cb) => {
-    if(file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg' || file.mimetype === 'image/png'){
-        cb(null, true);
-    }else{
-        cb(null, false);
-    }
-}
-
-const upload = multer({
-    storage: imageStorage,
-    limits: {
-        fileSize: 1024 * 1024 * 50
-    },
-    fileFilter: fileFilter
-})
-//#########################################################################################################
 
 //Postavke mongoose modula te spajanje na bazu
 mongoose.set('useCreateIndex', true);
@@ -53,7 +24,7 @@ function check(req,res,next){
     let token = req.headers.token || req.body.token
     jwt.verify(token, 'secretkey', (err,decoded) =>{
         if(err){
-            return res.status(500).json({
+            return res.status(401).json({
                 error:"Token expired"
             })
         }else{
@@ -70,6 +41,11 @@ if(process.env.NODE_ENV === 'production') {
 }
 /*Ruta koja kreira novi post tako sto spremi blobData kao sliku te kreira novi objekt u bazi
 sa svim podatcima ukljucujuci url spremljene slike */
+app.get('/authorised', check, async(req, res, next) =>{
+    return res.status(200).json({
+        auth: true
+    });
+}),
 app.post('/newpost',check, async(req,res,next) => {
     let newpost = req.body;
     newpost.postedBy = req.UserJwt.userId;
