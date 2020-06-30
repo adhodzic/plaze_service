@@ -1,4 +1,4 @@
-# auth
+
 
 ## Project setup
 ```
@@ -15,5 +15,3 @@ npm run serve
 npm run server
 ```
 
-PROMJENE :
-Sve funkcionalnosti rade
